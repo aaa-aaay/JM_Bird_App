@@ -63,7 +63,13 @@ button,label.btn{min-height:44px}.panel{padding:14px}.acts button{flex:1}.entry 
 <div id="settings" class="panel hide" style="margin-top:14px">
  <label class="f" for="k1">eBird API key</label><input type="password" id="k1" autocomplete="off">
  <label class="f" for="k2">Your region for rarity (eBird code, e.g. SG, US-NY, GB-ENG)</label><input type="text" id="k2" placeholder="Leave empty to skip rarity">
- <label class="f" for="k3">Anthropic API key (optional, only for photo and call identification)</label><input type="password" id="k3" autocomplete="off">
+ <p class="muted" style="margin:14px 0 0"><strong>Photo and call identification.</strong> Add one or more keys. With several, each model is asked and the answers are combined.</p>
+ <label class="f" for="k3">Anthropic (Claude) API key</label><input type="password" id="k3" autocomplete="off">
+ <label class="f" for="k4">OpenAI API key</label><input type="password" id="k4" autocomplete="off">
+ <label class="f" for="k5">Google Gemini API key</label><input type="password" id="k5" autocomplete="off">
+ <label class="f" for="m1">Model names (change these if a provider retires one)</label>
+ <div class="row"><input type="text" id="m1" aria-label="Claude model" style="flex:1;min-width:150px"><input type="text" id="m2" aria-label="OpenAI model" style="flex:1;min-width:150px"><input type="text" id="m3" aria-label="Gemini model" style="flex:1;min-width:150px"></div>
+ <label class="f" style="color:var(--ink)"><input type="checkbox" id="k6"> Only suggest birds reported in my region (needs a region above)</label>
  <p class="muted" style="font-size:.85rem">Keys are stored only in this browser and sent only to eBird and Anthropic.</p>
  <button id="ksave">Save settings</button>
 </div>
@@ -98,12 +104,12 @@ function h(t,a,...c){const e=document.createElement(t);for(const k in(a||{})){if
 function toast(m){const t=h('div',{class:'toast',role:'status'},m);$('#toastbox').append(t);setTimeout(()=>t.remove(),2600)}
 const ls=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}};
 const lset=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){toast('Storage is full. Remove some photos.');return false}};
-let cfg=Object.assign({key:'299b731d-5a96-4cbd-8846-ad33ae583208',region:'',ak:''},ls('fn-cfg',{}));
+let cfg=Object.assign({key:'299b731d-5a96-4cbd-8846-ad33ae583208',region:'',ak:'',ok:'',gk:'',ma:'claude-sonnet-5-5',mo:'gpt-5',mg:'gemini-3.5-flash',rf:true},ls('fn-cfg',{}));
 let list=ls('fn-list2',[]);const save=()=>lset('fn-list2',list);
 const find=c=>list.find(b=>b.code===c);
 const errText=e=>(e&&e.message)||'Something went wrong. Try again.';
-$('#gear').onclick=()=>{const s=$('#settings');s.classList.toggle('hide');$('#gear').setAttribute('aria-expanded',String(!s.classList.contains('hide')));$('#k1').value=cfg.key;$('#k2').value=cfg.region;$('#k3').value=cfg.ak};
-$('#ksave').onclick=()=>{cfg={key:$('#k1').value.trim(),region:$('#k2').value.trim().toUpperCase(),ak:$('#k3').value.trim()};lset('fn-cfg',cfg);toast('Settings saved');$('#settings').classList.add('hide')};
+$('#gear').onclick=()=>{const s=$('#settings');s.classList.toggle('hide');$('#gear').setAttribute('aria-expanded',String(!s.classList.contains('hide')));$('#k1').value=cfg.key;$('#k2').value=cfg.region;$('#k3').value=cfg.ak;$('#k4').value=cfg.ok;$('#k5').value=cfg.gk;$('#m1').value=cfg.ma;$('#m2').value=cfg.mo;$('#m3').value=cfg.mg;$('#k6').checked=cfg.rf};
+$('#ksave').onclick=()=>{cfg={key:$('#k1').value.trim(),region:$('#k2').value.trim().toUpperCase(),ak:$('#k3').value.trim(),ok:$('#k4').value.trim(),gk:$('#k5').value.trim(),ma:$('#m1').value.trim()||'claude-sonnet-5-5',mo:$('#m2').value.trim()||'gpt-5',mg:$('#m3').value.trim()||'gemini-3.5-flash',rf:$('#k6').checked};lset('fn-cfg',cfg);toast('Settings saved');$('#settings').classList.add('hide')};
 
 /* data sources */
 async function eb(p){const r=await fetch('https://api.ebird.org/v2/'+p,{headers:{'X-eBirdApiToken':cfg.key}});if(!r.ok)throw Error('eBird returned '+r.status+(r.status===403?'. Check your eBird API key in Settings.':r.status===400?'. Check the region code in Settings.':''));return r.json()}
@@ -143,20 +149,41 @@ let qt;$('#q').oninput=()=>{clearTimeout(qt);qt=setTimeout(async()=>{const q=$('
  try{await tax();const res=fuzzy(q,8);if($('#q').value.trim()!==q)return;if(!res.length){o.replaceChildren(h('div',{class:'msg err'},'No birds with a similar name.'));return}
   const box=h('div',{style:'margin-top:8px'});o.replaceChildren(box);await fillRows(box,res.map(t=>({t})))}catch(e){o.replaceChildren(h('div',{class:'msg err'},errText(e)))}},250)};
 
-/* AI identification (optional) */
-async function ai(prompt,img){if(!cfg.ak)throw Error('Add your Anthropic API key in Settings to use photo and call identification.');
- const content=[];if(img)content.push({type:'image',source:{type:'base64',media_type:'image/jpeg',data:img.split(',')[1]}});content.push({type:'text',text:prompt});
- const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':cfg.ak,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:800,messages:[{role:'user',content}]})});
- if(!r.ok)throw Error('Anthropic API returned '+r.status+'. Check your key in Settings.');const j=await r.json();return JSON.parse(j.content.map(c=>c.text||'').join('').replace(/```json|```/g,'').trim())}
+/* AI identification: Claude, OpenAI and Gemini, combined */
+const PROV=[['Claude','ak'],['OpenAI','ok'],['Gemini','gk']];
+const parseJ=t=>{t=t.replace(/```json|```/g,'');return JSON.parse(t.slice(t.indexOf('{'),t.lastIndexOf('}')+1))};
+async function callAI(name,prompt,img){const b64=img&&img.split(',')[1];let r,j;
+ if(name==='Claude'){const content=[];if(img)content.push({type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}});content.push({type:'text',text:prompt});
+  r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':cfg.ak,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:cfg.ma,max_tokens:1000,messages:[{role:'user',content}]})});
+  if(!r.ok)throw Error('HTTP '+r.status);j=await r.json();return parseJ(j.content.map(c=>c.text||'').join(''))}
+ if(name==='OpenAI'){const content=[{type:'text',text:prompt}];if(img)content.push({type:'image_url',image_url:{url:img}});
+  r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+cfg.ok},body:JSON.stringify({model:cfg.mo,messages:[{role:'user',content}],response_format:{type:'json_object'}})});
+  if(!r.ok)throw Error('HTTP '+r.status);j=await r.json();return parseJ(j.choices[0].message.content)}
+ const parts=[{text:prompt}];if(img)parts.push({inline_data:{mime_type:'image/jpeg',data:b64}});
+ r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(cfg.mg)+':generateContent',{method:'POST',headers:{'content-type':'application/json','x-goog-api-key':cfg.gk},body:JSON.stringify({contents:[{parts}],generationConfig:{responseMimeType:'application/json'}})});
+ if(!r.ok)throw Error('HTTP '+r.status);j=await r.json();return parseJ(j.candidates[0].content.parts.map(p=>p.text||'').join(''))}
+const REG={};
+async function regionSet(){if(!cfg.region||!cfg.rf)return null;if(!REG[cfg.region])REG[cfg.region]=new Set(await eb('product/spplist/'+cfg.region));return REG[cfg.region]}
 const CAND='Return JSON only: {"candidates":[{"name":"eBird common name","scientific":"","confidence":0-100,"why":"one sentence"}]} with at most 3 candidates, most likely first.';
-async function candidates(cs,src,box,prepend){await tax();const rows=[];for(const c of cs){const s=(c.scientific||'').toLowerCase();const t=TAX.find(x=>x.s.toLowerCase()===s)||fuzzy(c.name||c.scientific||'',1)[0];if(t&&!rows.some(r=>r.t===t))rows.push({t,conf:c.confidence,why:c.why,src})}
- const wrap=h('div',{});if(prepend){wrap.className='msg';wrap.append(h('strong',{},new Date().toLocaleTimeString()))}const list=h('div',{});wrap.append(list);prepend?box.prepend(wrap):box.replaceChildren(rows.length?wrap:h('div',{class:'msg err'},'No matching species found.'));if(rows.length)await fillRows(list,rows)}
+async function aiMulti(prompt,img){const P=PROV.filter(p=>cfg[p[1]]);if(!P.length)throw Error('Add at least one AI key (Claude, OpenAI or Gemini) in Settings.');
+ let reg=null,note='';try{reg=await regionSet()}catch(e){note='Region filter is off: '+errText(e)+' '}
+ let full=prompt;if(reg){await tax();const names=TAX.filter(t=>reg.has(t.c)).map(t=>t.n);if(names.length&&names.length<=1800)full+=' Only choose species from this list of birds reported in the user’s region: '+names.join('; ')+'.'}
+ const res=await Promise.allSettled(P.map(p=>callAI(p[0],full,img)));const used=[],failed=[],M=new Map();
+ res.forEach((r,i)=>{if(r.status!=='fulfilled'){failed.push(P[i][0]);return}used.push(P[i][0]);for(const c of(r.value.candidates||[])){const k=(c.scientific||c.name||'').toLowerCase();if(!k)continue;const m=M.get(k)||Object.assign({},c,{sum:0,n:0});m.sum+=+c.confidence||0;m.n++;M.set(k,m)}});
+ if(!used.length)throw Error('Every AI service failed ('+failed.join(', ')+'). Check the keys and model names in Settings.');
+ const cands=[...M.values()].map(m=>({name:m.name,scientific:m.scientific,confidence:m.sum/used.length,why:(m.why||'')+(used.length>1?' (suggested by '+m.n+' of '+used.length+' models)':'')})).sort((a,b)=>b.confidence-a.confidence).slice(0,3);
+ return{cands,reg,note:note+(failed.length?failed.join(', ')+' failed. ':'')+'Asked: '+used.join(', ')+'.'+(reg?' Limited to birds reported in '+cfg.region+'.':'')}}
+async function candidates(cs,src,box,prepend,reg,note){await tax();let rows=[];for(const c of cs){const s=(c.scientific||'').toLowerCase();const t=TAX.find(x=>x.s.toLowerCase()===s)||fuzzy(c.name||c.scientific||'',1)[0];if(t&&!rows.some(r=>r.t===t))rows.push({t,conf:c.confidence,why:c.why,src})}
+ if(reg){const inR=rows.filter(r=>reg.has(r.t.c));if(inR.length)rows=inR;else rows.forEach(r=>r.why=(r.why||'')+' (not on your region’s list)')}
+ const wrap=h('div',{});if(prepend){wrap.className='msg';wrap.append(h('strong',{},new Date().toLocaleTimeString()))}
+ if(note)wrap.append(h('p',{class:'muted',style:'font-size:.85rem;margin:4px 0'},note));const L=h('div',{});wrap.append(L);
+ prepend?box.prepend(wrap):box.replaceChildren(rows.length?wrap:h('div',{class:'msg err'},'No matching species found.'));if(rows.length)await fillRows(L,rows)}
 function readURL(f){return new Promise((r,j)=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.onerror=j;fr.readAsDataURL(f)})}
 async function shrink(file,max,q){const url=await readURL(file);const img=await new Promise((r,j)=>{const i=new Image();i.onload=()=>r(i);i.onerror=j;i.src=url});const s=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);return c.toDataURL('image/jpeg',q)}
 const idPhoto=async e=>{const f=e.target.files[0];if(!f)return;const out=$('#photo-out');out.replaceChildren(h('div',{class:'msg'},'Looking at your photo…'));
  try{const data=await shrink(f,1024,.85);const p=$('#preview');p.src=data;p.classList.remove('hide');
-  const r=await ai('Identify the bird in this photo. If there is no bird, return {"candidates":[]}. '+CAND+' In "why", name visible field marks.',data);
-  await candidates(r.candidates||[],'photo',out)}catch(err){out.replaceChildren(h('div',{class:'msg err'},errText(err)))}e.target.value=''};
+  const r=await aiMulti('Identify the bird in this photo. If there is no bird, return {"candidates":[]}. '+CAND+' In "why", name visible field marks.',data);
+  await candidates(r.cands,'photo',out,false,r.reg,r.note)}catch(err){out.replaceChildren(h('div',{class:'msg err'},errText(err)))}e.target.value=''};
 $('#pf').onchange=$('#pf2').onchange=idPhoto;
 
 /* live listening */
@@ -172,11 +199,11 @@ function frame(){an.getByteFrequencyData(bins);const W=cv.width,Hh=cv.height,hz=
  hist.push({t:performance.now(),f:pb*hz,v:pk,e:pk,floor:sum/n});if(hist.length>800)hist.shift();raf=requestAnimationFrame(frame)}
 async function analyse(){if(busy||!on)return;if(skip>0){skip--;return}const s=summarise();if(!s){$('#lstatus').textContent='Listening… no clear bird sounds in the last 10 seconds.';return}
  busy=true;$('#lstatus').textContent='Sound detected. Matching to species…';
- try{const r=await ai('You are an expert bird sound identifier. Acoustic measurements from a 10-second microphone window: '+JSON.stringify(s)+'. '+(cfg.region?'Region (eBird code): '+cfg.region+'. ':'')+'Suggest species whose calls or songs fit. If it looks like non-bird noise, return an empty list. '+CAND);
-  if((r.candidates||[]).length)await candidates(r.candidates,'call',$('#lout'),true);$('#lstatus').replaceChildren(h('span',{class:'dot'}),'Listening…')}
+ try{const r=await aiMulti('You are an expert bird sound identifier. Acoustic measurements from a 10-second microphone window: '+JSON.stringify(s)+'. Suggest species whose calls or songs fit. If it looks like non-bird noise, return {"candidates":[]}. '+CAND);
+  if(r.cands.length)await candidates(r.cands,'call',$('#lout'),true,r.reg,r.note);$('#lstatus').replaceChildren(h('span',{class:'dot'}),'Listening…')}
  catch(e){skip=3;$('#lstatus').textContent=errText(e)}busy=false}
 $('#lbtn').onclick=async()=>{if(on){on=false;cancelAnimationFrame(raf);clearInterval(timer);stream.getTracks().forEach(t=>t.stop());actx.close();$('#lbtn').textContent='Start listening';$('#lstatus').textContent='Microphone is off.';return}
- if(!cfg.ak){toast('Add your Anthropic API key in Settings first');return}
+ if(!PROV.some(p=>cfg[p[1]])){toast('Add an AI key in Settings first');return}
  try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false}})}catch(e){$('#lstatus').textContent='Microphone access was blocked. Allow it in your browser settings.';return}
  actx=new AudioContext();an=actx.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=.3;actx.createMediaStreamSource(stream).connect(an);bins=new Uint8Array(an.frequencyBinCount);hist=[];cx.fillStyle='#06100e';cx.fillRect(0,0,cv.width,cv.height);
  on=true;$('#lbtn').textContent='Stop listening';$('#lstatus').replaceChildren(h('span',{class:'dot'}),'Listening…');frame();timer=setInterval(analyse,10000)};
