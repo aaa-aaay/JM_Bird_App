@@ -57,9 +57,11 @@ label.f{display:block;margin:10px 0 4px;font-size:.9rem;color:var(--mute)}
 nav{position:fixed;left:0;right:0;bottom:0;margin:0;background:var(--surf);border-top:1px solid var(--line);border-bottom:0;z-index:4;padding:0 4px env(safe-area-inset-bottom,0px);justify-content:space-around;overflow:visible}
 .tab{flex:1;padding:10px 2px;font-size:.78rem;border-bottom:0;border-top:3px solid transparent;white-space:normal;min-height:54px}
 button,label.btn{min-height:44px}.panel{padding:14px}.acts button{flex:1}.entry h2{font-size:1.6rem}canvas#spec{height:160px}.toast{bottom:80px}}
+body.out nav,body.out section,body.out #settings,body.out #gear,body.out #out{display:none!important}body:not(.out) #auth{display:none}.auth{max-width:420px;margin:30px auto}.auth input{margin-top:10px}
 </style></head>
-<body><div class="wrap">
-<header><div><h1>Fieldnotes</h1><p class="sub">Live bird data from eBird, iNaturalist, Wikipedia and GBIF.</p></div><button class="ghost" id="gear" aria-expanded="false">Settings</button></header>
+<body class="out"><div class="wrap">
+<header><div><h1>Fieldnotes</h1><p class="sub">Live bird data from eBird, iNaturalist, Wikipedia and GBIF.</p></div><div class="row"><button class="ghost" id="gear" aria-expanded="false">Settings</button><button class="ghost" id="out">Sign out</button></div></header>
+<div id="auth" class="panel auth"></div>
 <div id="settings" class="panel hide" style="margin-top:14px">
  <label class="f" for="k1">eBird API key</label><input type="password" id="k1" autocomplete="off">
  <label class="f" for="k2">Your region for rarity (eBird code, e.g. SG, US-NY, GB-ENG)</label><input type="text" id="k2" placeholder="Leave empty to skip rarity">
@@ -98,6 +100,7 @@ button,label.btn{min-height:44px}.panel{padding:14px}.acts button{flex:1}.entry 
 <section id="v-entry" class="hide"><button class="ghost" id="back">Back</button><div id="entry" class="panel entry" style="margin-top:12px"></div></section>
 </div>
 <div id="toastbox"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 function h(t,a,...c){const e=document.createElement(t);for(const k in(a||{})){if(k==='class')e.className=a[k];else if(k.startsWith('on'))e[k]=a[k];else e.setAttribute(k,a[k])}for(const x of c.flat())if(x!=null&&x!==false)e.append(x.nodeType?x:document.createTextNode(x));return e}
@@ -105,7 +108,7 @@ function toast(m){const t=h('div',{class:'toast',role:'status'},m);$('#toastbox'
 const ls=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}};
 const lset=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){toast('Storage is full. Remove some photos.');return false}};
 let cfg=Object.assign({key:'299b731d-5a96-4cbd-8846-ad33ae583208',region:'',ak:'',ok:'',gk:'',ma:'claude-sonnet-5-5',mo:'gpt-5',mg:'gemini-3.5-flash',rf:true},ls('fn-cfg',{}));
-let list=ls('fn-list2',[]);const save=()=>lset('fn-list2',list);
+let list=[];const save=()=>{};
 const find=c=>list.find(b=>b.code===c);
 const errText=e=>(e&&e.message)||'Something went wrong. Try again.';
 $('#gear').onclick=()=>{const s=$('#settings');s.classList.toggle('hide');$('#gear').setAttribute('aria-expanded',String(!s.classList.contains('hide')));$('#k1').value=cfg.key;$('#k2').value=cfg.region;$('#k3').value=cfg.ak;$('#k4').value=cfg.ok;$('#k5').value=cfg.gk;$('#m1').value=cfg.ma;$('#m2').value=cfg.mo;$('#m3').value=cfg.mg;$('#k6').checked=cfg.rf};
@@ -138,8 +141,6 @@ const clip=(t,n)=>{t=(t||'').trim();if(t.length<=n)return t;const s=t.slice(0,n)
 const TABS=[['photo','Identify photo'],['listen','Listen live'],['list','Life list'],['search','Search']];let last='photo';
 function tabs(a){$('#tabs').replaceChildren(...TABS.map(([k,l])=>h('button',{class:'tab',role:'tab','aria-selected':String(k===a),onclick:()=>show(k)},k==='list'?`${l} (${list.length})`:l)))}
 function show(k){for(const [id] of TABS)$('#v-'+id).classList.toggle('hide',id!==k);$('#v-entry').classList.add('hide');tabs(k);last=k;if(k==='list')renderList();if(k==='search')$('#q').focus()}
-function addBird(t,src,thumb){let b=find(t.c);if(b)return b;b={code:t.c,name:t.n,sci:t.s,date:new Date().toISOString().slice(0,10),source:src||'search',thumb:thumb||null,photos:[]};list.unshift(b);save();toast(t.n+' added to your life list');tabs(last);return b}
-
 /* search results */
 function resRow(t,url,extra){const r=h('div',{class:'sr',tabindex:'0',role:'button',onclick:()=>openEntry(t.c),onkeydown:e=>{if(e.key==='Enter')openEntry(t.c)}},pic(url),h('div',{style:'flex:1;min-width:0'},h('h3',{},t.n),h('i',{class:'muted'},t.s),extra&&extra.why?h('div',{class:'muted',style:'font-size:.9rem'},extra.why):null),extra&&extra.conf!=null?h('div',{class:'conf'},Math.round(extra.conf)+'%'):null,
  h('button',{class:'ghost','aria-label':'Add '+t.n+' to life list',onclick:e=>{e.stopPropagation();if(find(t.c))return toast('Already on your list');addBird(t,extra&&extra.src,url);e.target.textContent='Added'}},find(t.c)?'Listed':'Add'));return r}
@@ -239,12 +240,12 @@ function gbifMap(k){const w=h('div',{class:'gmap',role:'img','aria-label':'Map o
 function drawEntry(t,d,b){const box=$('#entry'),ph=b?b.photos:[];
  const items=[...ph.slice(0,3).map(p=>({src:p,cap:'Your photo'})),...(d.wimg?[{src:d.wimg,cap:'Wikipedia / Wikimedia Commons'}]:[]),...d.photos];
  const wt=encodeURIComponent((d.title||t.s).replace(/ /g,'_'));
- const grid=h('div',{class:'photos'},ph.map((p,i)=>h('figure',{},h('img',{src:p,alt:'Your photo of '+t.n}),h('button',{'aria-label':'Delete photo',onclick:()=>{b.photos.splice(i,1);save();drawEntry(t,d,b)}},'Delete'))));
- const up=h('input',{type:'file',accept:'image/*',multiple:'multiple',onchange:async e=>{for(const f of e.target.files){try{const u=await shrink(f,640,.75);if(!b)b=addBird(t,'search',d.photos[0]&&d.photos[0].src);b.photos.push(u)}catch(x){toast('Could not read that image')}}save();drawEntry(t,d,b)}});
+ const grid=h('div',{class:'photos'},ph.map((p,i)=>h('figure',{},h('img',{src:p,alt:'Your photo of '+t.n}),h('button',{'aria-label':'Delete photo',onclick:async()=>{await delPhoto(b,i);drawEntry(t,d,b)}},'Delete'))));
+ const up=h('input',{type:'file',accept:'image/*',multiple:'multiple',onchange:async e=>{for(const f of e.target.files){try{const u=await shrink(f,640,.75);if(!b)b=addBird(t,'search',d.photos[0]&&d.photos[0].src);await addPhoto(b,u)}catch(x){toast('Could not upload that image: '+errText(x))}}drawEntry(t,d,b)}});
  const r=d.rar||{},lab={None:'Not reported lately'};
  box.replaceChildren(h('h2',{},t.n),h('p',{class:'sci'},t.s),
   items.length?h('div',{class:'gal'},items.map(i=>h('figure',{},h('img',{src:i.src,alt:t.n,loading:'lazy'}),h('figcaption',{},i.cap)))):h('p',{class:'muted'},'No photos found online for this bird.'),
-  h('div',{style:'margin:12px 0'},b?h('button',{class:'ghost',onclick:()=>{if(confirm('Remove '+t.n+' and your photos from the life list?')){list=list.filter(x=>x!==b);save();show('list')}}},'Remove from life list'):h('button',{onclick:()=>{b=addBird(t,'search',d.photos[0]&&d.photos[0].src);drawEntry(t,d,b)}},'Add to life list')),
+  h('div',{style:'margin:12px 0'},b?h('button',{class:'ghost',onclick:async()=>{if(confirm('Remove '+t.n+' and your photos from the life list?')){await removeBird(b);show('list')}}},'Remove from life list'):h('button',{onclick:()=>{b=addBird(t,'search',d.photos[0]&&d.photos[0].src);drawEntry(t,d,b)}},'Add to life list')),
   sec('My photos'+(ph.length?' ('+ph.length+')':''),[h('p',{class:'muted',style:'margin:0 0 8px'},b?'Photos stay in this browser.':'Adding a photo also adds this bird to your life list.'),grid,h('div',{style:'margin-top:10px'},h('label',{class:'btn ghost'},'Add my photos',up))]),
   sec('Distribution',[d.gbif?gbifMap(d.gbif):h('p',{class:'muted'},'No map available.'),d.gbif?h('p',{class:'muted',style:'font-size:.8rem'},'Purple marks show recorded sightings (GBIF). Basemap: GBIF and OpenStreetMap contributors.'):null,h('p',{},d.dist||none())]),
   sec('Summary',[h('p',{},d.summary||none()),d.title?h('a',{href:'https://en.wikipedia.org/wiki/'+wt,target:'_blank',rel:'noopener'},'Read more on Wikipedia'):null]),
@@ -253,5 +254,43 @@ function drawEntry(t,d,b){const box=$('#entry'),ph=b?b.photos:[];
   sec('Rarity',r.level?[h('span',{class:'tag r-'+r.level},lab[r.level]||r.level),h('p',{},`Reported from ${r.c} location${r.c===1?'':'s'} in ${r.region} in the last 30 days${r.nt?', and flagged as notable by eBird reviewers':''}. The label is a rough guide from recent reports.`),r.recent.length?h('p',{class:'muted'},'Latest: '+r.recent.map(o=>`${o.locName} (${o.obsDt.slice(0,10)})`).join('; ')):null]:h('p',{},r.msg||r.err||'Rarity unavailable.'))
  )}
 $('#back').onclick=()=>show(last);
-show('photo');
+/* accounts (Supabase) */
+const SB_URL='https://xlgbomooaxuwwxczjxnt.supabase.co',SB_ANON='';
+let sb=null,USER=null,recovering=false;
+function authUI(mode){document.body.classList.add('out');const a=$('#auth'),key=SB_ANON||ls('fn-sbkey','');
+ if(!window.supabase){a.replaceChildren(h('p',{class:'msg err'},'Could not load the sign-in library. Check your internet connection and reload.'));return}
+ if(!key){a.replaceChildren(h('h2',{style:'margin:0 0 8px;font-size:1.3rem'},'Connect your database'),h('p',{class:'muted'},'Paste the anon public key from Supabase (Project Settings, then API).'),h('input',{type:'password',id:'ak',autocomplete:'off','aria-label':'Supabase anon key'}),h('div',{style:'margin-top:12px'},h('button',{onclick:()=>{const v=$('#ak').value.trim();if(v){lset('fn-sbkey',v);init()}}},'Save key')));return}
+ const rec=mode==='recover';
+ const em=h('input',{type:'text',id:'em',autocomplete:'email',inputmode:'email','aria-label':'Email',placeholder:'Email'}),pw=h('input',{type:'password',id:'pw',autocomplete:rec?'new-password':'current-password','aria-label':'Password',placeholder:rec?'New password':'Password'});
+ const say=m=>{$('#amsg').textContent=m};
+ const go=async fn=>{try{say('');const r=await fn();if(r&&r.error)throw r.error}catch(e){say(e.message||'Something went wrong.')}};
+ a.replaceChildren(h('h2',{style:'margin:0 0 6px;font-size:1.3rem'},rec?'Choose a new password':'Sign in to Fieldnotes'),
+  h('p',{class:'muted',style:'margin:0 0 6px'},rec?'Enter a new password for your account.':'Your life list and photos follow you to any device.'),
+  rec?null:em,pw,
+  h('div',{class:'row',style:'margin-top:14px'},rec?h('button',{onclick:()=>go(async()=>{const r=await sb.auth.updateUser({password:pw.value});if(!r.error){recovering=false;USER=(await sb.auth.getUser()).data.user;await enter()}return r})},'Save password'):[
+   h('button',{onclick:()=>go(()=>sb.auth.signInWithPassword({email:em.value.trim(),password:pw.value}))},'Sign in'),
+   h('button',{class:'ghost',onclick:()=>go(async()=>{const r=await sb.auth.signUp({email:em.value.trim(),password:pw.value});if(!r.error)say(r.data.session?'Account created.':'Account created. Check your email to confirm it, then sign in.');return r})},'Create account')]),
+  rec?null:h('p',{style:'margin:14px 0 0'},h('a',{href:'#',onclick:e=>{e.preventDefault();go(async()=>{const r=await sb.auth.resetPasswordForEmail(em.value.trim());if(!r.error)say('If that email has an account, a reset link is on its way.');return r})}},'Forgot password?')),
+  h('p',{id:'amsg',role:'status',style:'color:var(--red);margin:10px 0 0'}))}
+function init(){const key=SB_ANON||ls('fn-sbkey','');if(!key||!window.supabase){authUI();return}
+ sb=supabase.createClient(SB_URL,key,{auth:{persistSession:true,autoRefreshToken:true}});
+ sb.auth.onAuthStateChange((ev,s)=>{if(ev==='PASSWORD_RECOVERY'){recovering=true;authUI('recover');return}
+  if(ev==='SIGNED_OUT'){USER=null;list=[];recovering=false;authUI();return}
+  if(s&&!recovering&&(!USER||USER.id!==s.user.id)){USER=s.user;setTimeout(enter,0)}else if(!s&&ev==='INITIAL_SESSION')authUI()})}
+async function enter(){try{await loadList()}catch(e){toast('Could not load your list: '+errText(e))}document.body.classList.remove('out');show('photo')}
+async function loadList(){const [a,b]=await Promise.all([sb.from('life_list').select('*').order('created_at',{ascending:false}),sb.from('bird_photos').select('*').order('created_at')]);
+ if(a.error)throw a.error;if(b.error)throw b.error;const urls={},paths=b.data.map(p=>p.path);
+ if(paths.length){const {data}=await sb.storage.from('bird-photos').createSignedUrls(paths,21600);(data||[]).forEach(x=>urls[x.path]=x.signedUrl)}
+ list=a.data.map(r=>({code:r.code,name:r.name,sci:r.sci,date:r.first_seen,source:r.source,thumb:r.thumb,photos:[],pp:[]}));
+ for(const p of b.data){const x=find(p.code);if(x&&urls[p.path]){x.photos.push(urls[p.path]);x.pp.push({id:p.id,path:p.path})}}}
+function addBird(t,src,thumb){let b=find(t.c);if(b)return b;b={code:t.c,name:t.n,sci:t.s,date:new Date().toISOString().slice(0,10),source:src||'search',thumb:thumb||null,photos:[],pp:[]};list.unshift(b);toast(t.n+' added to your life list');tabs(last);
+ sb.from('life_list').upsert({user_id:USER.id,code:b.code,name:b.name,sci:b.sci,source:b.source,thumb:b.thumb,first_seen:b.date},{onConflict:'user_id,code'}).then(r=>{if(r.error)toast('Could not save to your account: '+r.error.message)});return b}
+async function addPhoto(b,dataUrl){const blob=await(await fetch(dataUrl)).blob();const path=`${USER.id}/${b.code}/${Date.now()}-${Math.random().toString(36).slice(2,7)}.jpg`;
+ const up=await sb.storage.from('bird-photos').upload(path,blob,{contentType:'image/jpeg'});if(up.error)throw up.error;
+ const ins=await sb.from('bird_photos').insert({user_id:USER.id,code:b.code,path}).select().single();if(ins.error)throw ins.error;
+ const {data}=await sb.storage.from('bird-photos').createSignedUrl(path,21600);b.photos.push(data.signedUrl);b.pp.push({id:ins.data.id,path})}
+async function delPhoto(b,i){const p=b.pp[i];await sb.storage.from('bird-photos').remove([p.path]);await sb.from('bird_photos').delete().eq('id',p.id);b.photos.splice(i,1);b.pp.splice(i,1)}
+async function removeBird(b){if(b.pp.length)await sb.storage.from('bird-photos').remove(b.pp.map(p=>p.path));await sb.from('bird_photos').delete().eq('code',b.code);await sb.from('life_list').delete().eq('code',b.code);list=list.filter(x=>x!==b)}
+$('#out').onclick=()=>sb&&sb.auth.signOut();
+init();
 </script></body></html>
