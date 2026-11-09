@@ -58,6 +58,13 @@ nav{position:fixed;left:0;right:0;bottom:0;margin:0;background:var(--surf);borde
 .tab{flex:1;padding:10px 2px;font-size:.78rem;border-bottom:0;border-top:3px solid transparent;white-space:normal;min-height:54px}
 button,label.btn{min-height:44px}.panel{padding:14px}.acts button{flex:1}.entry h2{font-size:1.6rem}canvas#spec{height:160px}.toast{bottom:80px}}
 body.out nav,body.out section,body.out #settings,body.out #gear,body.out #out{display:none!important}body:not(.out) #auth{display:none}.auth{max-width:420px;margin:30px auto}.auth input{margin-top:10px}
+.car{position:relative;border-radius:12px;overflow:hidden;background:var(--bg);touch-action:pan-y}
+.car img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;cursor:pointer;user-select:none;-webkit-user-drag:none}
+.car .nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;padding:0;background:rgba(0,0,0,.45);color:#fff;font-size:1.6rem;line-height:1}
+.car .l{left:8px}.car .r{right:8px}
+.cnt{position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,.55);color:#fff;font:.8rem "Bricolage Grotesque",sans-serif;padding:2px 8px;border-radius:99px}
+textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px}
+.tag{white-space:nowrap}
 </style></head>
 <body class="out"><div class="wrap">
 <header><div><h1>Fieldnotes</h1><p class="sub">Live bird data from eBird, iNaturalist, Wikipedia and GBIF.</p></div><div class="row"><button class="ghost" id="gear" aria-expanded="false">Settings</button><button class="ghost" id="out">Sign out</button></div></header>
@@ -105,6 +112,7 @@ body.out nav,body.out section,body.out #settings,body.out #gear,body.out #out{di
 const $=s=>document.querySelector(s);
 function h(t,a,...c){const e=document.createElement(t);for(const k in(a||{})){if(k==='class')e.className=a[k];else if(k.startsWith('on'))e[k]=a[k];else e.setAttribute(k,a[k])}for(const x of c.flat())if(x!=null&&x!==false)e.append(x.nodeType?x:document.createTextNode(x));return e}
 function toast(m){const t=h('div',{class:'toast',role:'status'},m);$('#toastbox').append(t);setTimeout(()=>t.remove(),2600)}
+const _rc=Element.prototype.replaceChildren;Element.prototype.replaceChildren=function(...n){return _rc.apply(this,n.filter(x=>x!=null&&x!==false))};
 const ls=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}};
 const lset=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){toast('Storage is full. Remove some photos.');return false}};
 let cfg=Object.assign({key:'299b731d-5a96-4cbd-8846-ad33ae583208',region:'',ak:'',ok:'',gk:'',ma:'claude-sonnet-5-5',mo:'gpt-5',mg:'gemini-3.5-flash',rf:true,regionName:''},ls('fn-cfg',{}));
@@ -140,7 +148,7 @@ const clip=(t,n)=>{t=(t||'').trim();if(t.length<=n)return t;const s=t.slice(0,n)
 /* tabs */
 const TABS=[['photo','Identify photo'],['listen','Listen live'],['list','Life list'],['search','Search']];let last='photo';
 function tabs(a){$('#tabs').replaceChildren(...TABS.map(([k,l])=>h('button',{class:'tab',role:'tab','aria-selected':String(k===a),onclick:()=>show(k)},k==='list'?`${l} (${list.length})`:l)))}
-function show(k){for(const [id] of TABS)$('#v-'+id).classList.toggle('hide',id!==k);$('#v-entry').classList.add('hide');tabs(k);last=k;if(k==='list')renderList();if(k==='search')$('#q').focus()}
+function show(k){for(const [id] of TABS)$('#v-'+id).classList.toggle('hide',id!==k);$('#v-entry').classList.add('hide');tabs(k);last=k;if(k==='list'){renderList();backfill()}if(k==='search')$('#q').focus()}
 /* search results */
 function resRow(t,url,extra){const r=h('div',{class:'sr',tabindex:'0',role:'button',onclick:()=>openEntry(t.c),onkeydown:e=>{if(e.key==='Enter')openEntry(t.c)}},pic(url),h('div',{style:'flex:1;min-width:0'},h('h3',{},t.n),extra&&extra.why?h('div',{class:'muted',style:'font-size:.9rem'},extra.why):null),extra&&extra.conf!=null?h('div',{class:'conf'},Math.round(extra.conf)+'%'):null,
  h('button',{class:'ghost','aria-label':'Add '+t.n+' to life list',onclick:e=>{e.stopPropagation();if(find(t.c))return toast('Already on your list');addBird(t,extra&&extra.src,url);e.target.textContent='Added'}},find(t.c)?'Listed':'Add'));return r}
@@ -211,29 +219,47 @@ $('#lbtn').onclick=async()=>{if(on){on=false;cancelAnimationFrame(raf);clearInte
 
 /* life list */
 function renderList(){const b=$('#listbox');if(!list.length){b.replaceChildren(h('h2',{style:'margin:0 0 6px;font-size:1.2rem'},'Your life list is empty'),h('p',{class:'muted'},'Search for a bird, or identify one from a photo or call, then add it here.'));return}
- b.replaceChildren(h('h2',{style:'margin:0 0 6px;font-size:1.2rem'},list.length+' species seen'),...list.map(x=>h('div',{class:'sr',tabindex:'0',role:'button',onclick:()=>openEntry(x.code),onkeydown:e=>{if(e.key==='Enter')openEntry(x.code)}},pic(x.photos[0]||x.thumb),h('div',{style:'flex:1;min-width:0'},h('h3',{},x.name),h('div',{class:'muted',style:'font-size:.9rem'},'First logged '+x.date)))))}
+ b.replaceChildren(h('h2',{style:'margin:0 0 6px;font-size:1.2rem'},list.length+' species seen'),...list.map(x=>h('div',{class:'sr',tabindex:'0',role:'button',onclick:()=>openEntry(x.code),onkeydown:e=>{if(e.key==='Enter')openEntry(x.code)}},pic(x.photos[0]||x.thumb),h('div',{style:'flex:1;min-width:0'},h('h3',{},x.name),h('div',{class:'muted',style:'font-size:.9rem'},'First logged '+x.date)),x.score!=null?h('span',{class:'tag r-'+rcls(x.rarity),style:'flex:none'},x.rarity+' · '+x.score.toFixed(1)):h('span',{class:'muted',style:'font-size:.8rem'},'…'))))}
 
 /* entry */
 const cache={};
 function secs(txt){const p=(txt||'').split(/\n=+\s*(.+?)\s*=+\n/);const o=[];for(let i=1;i<p.length;i+=2)o.push([p[i],p[i+1]||'']);return{intro:p[0],secs:o}}
 const pick=(S,re,n)=>clip(S.filter(s=>re.test(s[0])).map(s=>s[1].trim()).filter(Boolean).join('\n\n'),n);
-const BANDS={LC:[1,4],NT:[4.5,5.5],VU:[5.6,6.6],EN:[6.8,7.8],CR:[8,9.4]},NAMES={'least concern':'LC','near threatened':'NT','vulnerable':'VU','endangered':'EN','critically endangered':'CR','extinct in the wild':'EW','extinct':'EX'};
+const BANDS={LC:[1,5],NT:[5,6],VU:[6,7],EN:[7,8],CR:[8,9.5]},NAMES={'least concern':'LC','near threatened':'NT','vulnerable':'VU','endangered':'EN','critically endangered':'CR','extinct in the wild':'EW','extinct':'EX'};
 function iucnCode(cs){if(!cs)return null;const c=String(cs.status||'').toUpperCase();if(BANDS[c]||c==='EW'||c==='EX')return c;return NAMES[String(cs.status_name||cs.status||'').toLowerCase()]||null}
-function rarityScore(code,n){if(code==='EX')return 10;if(code==='EW')return 9.5;const b=BANDS[code]||[1,4.5];const k=n==null?.5:Math.min(1,Math.max(0,(6-Math.log10(Math.max(n,1)))/4));return Math.round((b[0]+(b[1]-b[0])*k)*10)/10}
+function rarityScore(code,n,ct){if(code==='EX')return 10;if(code==='EW')return 9.7;const b=BANDS[code]||[1,5];
+ const bf=ct==null?.5:Math.min(1,Math.max(0,1-Math.log10(Math.max(ct,1))/Math.log10(120)));
+ const cf=n==null?.5:Math.min(1,Math.max(0,(6.3-Math.log10(Math.max(n,1)))/4.3));
+ return Math.round((b[0]+(b[1]-b[0])*(.6*bf+.4*cf))*10)/10}
 const rarityLabel=x=>x<3?'Common':x<5?'Uncommon':x<8?'Rare':'Super rare';
+const rcls=l=>l==='Super rare'?'Super':l;
+async function gbifStats(sci){const m=await jget('https://api.gbif.org/v1/species/match?kingdom=Animalia&name='+encodeURIComponent(sci));if(!m.usageKey)return{};let n=null,ct=null;
+ try{const r=await jget('https://api.gbif.org/v1/occurrence/search?limit=0&facet=country&facetLimit=300&taxonKey='+m.usageKey);n=r.count;const f=(r.facets||[]).find(x=>x.field==='COUNTRY');if(f)ct=f.counts.filter(c=>c.count>=5).length}catch(e){}
+ return{usageKey:m.usageKey,count:n,countries:ct}}
+async function rarityFor(sci){const [i,g]=await Promise.allSettled([jget('https://api.inaturalist.org/v1/taxa?rank=species&per_page=1&q='+encodeURIComponent(sci)),gbifStats(sci)]);
+ const it=i.status==='fulfilled'?(i.value.results||[])[0]:null;let code=null;if(it){const cs=(it.conservation_statuses||[]).find(c=>c.authority==='IUCN Red List'&&!c.place)||it.conservation_status;code=iucnCode(cs);if(it.extinct)code='EX'}
+ const gv=g.status==='fulfilled'?g.value:{};const score=rarityScore(code,gv.count,gv.countries);return{score,label:rarityLabel(score)}}
+function setRarity(b,score,label){b.score=score;b.rarity=label;if(sb&&USER)sb.from('life_list').update({score,rarity:label}).eq('code',b.code).then(()=>{})}
+let bfOn=false;async function backfill(){if(bfOn||!sb)return;bfOn=true;try{for(const b of list.filter(x=>x.score==null)){try{const r=await rarityFor(b.sci);setRarity(b,r.score,r.label);if(last==='list')renderList()}catch(e){}}}finally{bfOn=false}}
 async function load(t){const sci=encodeURIComponent(t.s);
  const [w,inat,gb]=await Promise.allSettled([
   jget('https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1&prop=extracts|pageimages&explaintext=1&piprop=thumbnail&pithumbsize=800&titles='+sci),
   (async()=>{const s=await jget('https://api.inaturalist.org/v1/taxa?rank=species&per_page=1&q='+sci);const id=s.results&&s.results[0]&&s.results[0].id;if(!id)return null;return (await jget('https://api.inaturalist.org/v1/taxa/'+id)).results[0]})(),
-  (async()=>{const m=await jget('https://api.gbif.org/v1/species/match?kingdom=Animalia&name='+sci);let n=null;if(m.usageKey){try{n=await jget('https://api.gbif.org/v1/occurrence/count?taxonKey='+m.usageKey)}catch(e){}}return{usageKey:m.usageKey,count:n}})()]);
+  gbifStats(t.s)]);
  const d={};const pg=w.status==='fulfilled'?Object.values((w.value.query||{}).pages||{})[0]:null;
  if(pg&&!pg.missing){const S=secs(pg.extract);d.title=pg.title;d.wimg=pg.thumbnail&&pg.thumbnail.source;d.summary=clip(S.intro,800);d.dist=pick(S.secs,/distribut|range|habitat/i,900);d.beh=pick(S.secs,/behav|ecolog|diet|feeding|breeding|vocal|voice|call|song/i,1400)}
  const it=inat.status==='fulfilled'?inat.value:null;d.photos=it?(it.taxon_photos||[]).slice(0,8).map(p=>({src:p.photo.medium_url,cap:p.photo.attribution||'iNaturalist'})):[];
  if(it){const cs=(it.conservation_statuses||[]).find(c=>c.authority==='IUCN Red List'&&!c.place)||it.conservation_status;d.iucn=cs&&(cs.status_name||cs.status);d.iucnCode=iucnCode(cs);if(it.extinct)d.iucnCode='EX'}
- d.gbif=gb.status==='fulfilled'?gb.value.usageKey:null;d.count=gb.status==='fulfilled'?gb.value.count:null;d.score=rarityScore(d.iucnCode,d.count);d.label=rarityLabel(d.score);return d}
+ d.gbif=gb.status==='fulfilled'?gb.value.usageKey:null;d.count=gb.status==='fulfilled'?gb.value.count:null;d.countries=gb.status==='fulfilled'?gb.value.countries:null;d.score=rarityScore(d.iucnCode,d.count,d.countries);d.label=rarityLabel(d.score);return d}
 async function openEntry(code){['photo','listen','list','search'].forEach(k=>$('#v-'+k).classList.add('hide'));$('#v-entry').classList.remove('hide');scrollTo(0,0);const box=$('#entry');
  box.replaceChildren(h('p',{class:'muted'},'Loading from eBird, iNaturalist, Wikipedia and GBIF…'));
- try{const T=await tax();const t=T.find(x=>x.c===code);if(!cache[code])cache[code]=await load(t);drawEntry(t,cache[code],find(code))}catch(e){box.replaceChildren(h('div',{class:'msg err'},errText(e)))}}
+ try{const T=await tax();const t=T.find(x=>x.c===code);if(!cache[code])cache[code]=await load(t);const bb=find(code);if(bb&&bb.score!==cache[code].score)setRarity(bb,cache[code].score,cache[code].label);drawEntry(t,cache[code],bb)}catch(e){box.replaceChildren(h('div',{class:'msg err'},errText(e)))}}
+function carousel(items,name){if(!items.length)return h('p',{class:'muted'},'No photos found online for this bird.');let i=0;
+ const img=h('img',{alt:name,src:items[0].src,title:items[0].cap||'',draggable:'false'}),cnt=h('span',{class:'cnt'},'1 / '+items.length);
+ const go=d=>{i=(i+d+items.length)%items.length;img.src=items[i].src;img.title=items[i].cap||'';cnt.textContent=(i+1)+' / '+items.length};
+ const box=h('div',{class:'car',tabindex:'0',role:'group','aria-label':'Photos of '+name},img,items.length>1?[h('button',{class:'nav l','aria-label':'Previous photo',onclick:e=>{e.stopPropagation();go(-1)}},'‹'),h('button',{class:'nav r','aria-label':'Next photo',onclick:e=>{e.stopPropagation();go(1)}},'›'),cnt]:null);
+ let x0=null;box.ontouchstart=e=>{x0=e.touches[0].clientX};box.ontouchend=e=>{if(x0==null)return;const dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>40)go(dx<0?1:-1);x0=null};
+ box.onclick=e=>{if(items.length>1&&e.target===img)go(1)};box.onkeydown=e=>{if(e.key==='ArrowRight')go(1);if(e.key==='ArrowLeft')go(-1)};return box}
 function sec(title,body){return h('details',{},h('summary',{},h('span',{},title)),h('div',{class:'dbody'},body))}
 const none=h=>'Nothing found for this section on Wikipedia.';
 function gbifMap(k){const w=h('div',{class:'gmap',role:'img','aria-label':'Map of recorded sightings'});for(let y=0;y<2;y++)for(let x=0;x<4;x++)w.append(h('div',{class:'tile'},h('img',{alt:'',loading:'lazy',src:`https://tile.gbif.org/4326/omt/1/${x}/${y}@1x.png?style=gbif-light`}),h('img',{alt:'',loading:'lazy',src:`https://api.gbif.org/v2/map/occurrence/density/1/${x}/${y}@1x.png?srs=EPSG:4326&taxonKey=${k}&style=purpleHeat.point`})));return w}
@@ -244,14 +270,15 @@ function drawEntry(t,d,b){const box=$('#entry'),ph=b?b.photos:[];
  const up=h('input',{type:'file',accept:'image/*',multiple:'multiple',onchange:async e=>{for(const f of e.target.files){try{const u=await shrink(f,640,.75);if(!b)b=addBird(t,'search',d.photos[0]&&d.photos[0].src);await addPhoto(b,u)}catch(x){toast('Could not upload that image: '+errText(x))}}drawEntry(t,d,b)}});
  const sc=d.score,cl=({'Super rare':'Super'})[d.label]||d.label,tag=sc!=null?h('span',{class:'tag r-'+cl},d.label+' · '+sc.toFixed(1)):null;
  box.replaceChildren(h('div',{class:'row',style:'gap:12px;margin-top:8px'},h('h2',{style:'margin:0'},t.n),tag),h('p',{class:'sci'},t.s),
-  items.length?h('div',{class:'gal'},items.map(i=>h('figure',{},h('img',{src:i.src,alt:t.n,loading:'lazy'}),h('figcaption',{},i.cap)))):h('p',{class:'muted'},'No photos found online for this bird.'),
+  carousel(items,t.n),
   h('div',{style:'margin:12px 0'},b?h('button',{class:'ghost',onclick:async()=>{if(confirm('Remove '+t.n+' and your photos from the life list?')){await removeBird(b);show('list')}}},'Remove from life list'):h('button',{onclick:()=>{b=addBird(t,'search',d.photos[0]&&d.photos[0].src);drawEntry(t,d,b)}},'Add to life list')),
   sec('My photos'+(ph.length?' ('+ph.length+')':''),[h('p',{class:'muted',style:'margin:0 0 8px'},b?'Photos stay in this browser.':'Adding a photo also adds this bird to your life list.'),grid,h('div',{style:'margin-top:10px'},h('label',{class:'btn ghost'},'Add my photos',up))]),
+  sec('My notes',b?[h('textarea',{id:'nt',rows:'5','aria-label':'Notes about '+t.n,placeholder:'Where you saw it, what it was doing, the weather…'},b.notes||''),h('div',{style:'margin-top:8px'},h('button',{onclick:async()=>{const v=$('#nt').value;const r=await sb.from('life_list').update({notes:v}).eq('code',b.code);if(r.error)toast('Could not save notes: '+r.error.message);else{b.notes=v;toast('Notes saved')}}},'Save notes'))]:h('p',{class:'muted'},'Add this bird to your life list to write notes.')),
   sec('Distribution',[d.gbif?gbifMap(d.gbif):h('p',{class:'muted'},'No map available.'),d.gbif?h('p',{class:'muted',style:'font-size:.8rem'},'Purple marks show recorded sightings (GBIF). Basemap: GBIF and OpenStreetMap contributors.'):null,h('p',{},d.dist||none())]),
-  sec('Summary',[h('p',{},d.summary||none()),d.title?h('a',{href:'https://en.wikipedia.org/wiki/'+wt,target:'_blank',rel:'noopener'},'Read more on Wikipedia'):null]),
+  sec('Summary',[h('p',{},d.summary||none()),h('p',{class:'muted',style:'font-size:.9rem'},'Text from Wikipedia. More from the Cornell Lab: ',h('a',{href:'https://ebird.org/species/'+t.c,target:'_blank',rel:'noopener'},'eBird species page'),' · ',h('a',{href:'https://media.ebird.org/catalog?taxonCode='+t.c,target:'_blank',rel:'noopener'},'Macaulay Library media'))]),
   sec('Behaviour and ecology',h('p',{},d.beh||none())),
   sec('Species information',h('table',{},...[['Common name',t.n],['Scientific name',t.s],['Order',t.o],['Family',t.f+(t.fs?' ('+t.fs+')':'')],['Genus',t.s.split(' ')[0]],['IUCN status',d.iucn],['eBird code',t.c]].filter(x=>x[1]).map(x=>h('tr',{},h('td',{},x[0]),h('td',{},x[1]))))),
-  sec('Rarity',[h('div',{class:'conf',style:'font-size:2rem'},sc.toFixed(1)+' / 10'),h('p',{},`${d.label}. On this global scale, 1.0 is very common and 10.0 is extinct. It is worked out from the IUCN Red List status (${d.iucn||'not listed'})`+(d.count!=null?` and about ${d.count.toLocaleString()} recorded sightings worldwide (GBIF).`:'.')+' It is an estimate, not an official rating.')])
+  sec('Rarity',[h('div',{class:'conf',style:'font-size:2rem'},sc.toFixed(1)+' / 10'),h('p',{},`${d.label}. On this global scale, 1.0 is very common and 10.0 is extinct. It is worked out from the IUCN Red List status (${d.iucn||'not listed'})`+(d.count!=null?`, about ${d.count.toLocaleString()} recorded sightings worldwide`+(d.countries!=null?` and records from ${d.countries} countries`:'')+' (GBIF).':'.')+' It is an estimate, not an official rating.')])
  )}
 $('#back').onclick=()=>show(last);
 /* accounts (Supabase) */
@@ -281,10 +308,10 @@ async function enter(){try{await loadList()}catch(e){toast('Could not load your 
 async function loadList(){const [a,b]=await Promise.all([sb.from('life_list').select('*').order('created_at',{ascending:false}),sb.from('bird_photos').select('*').order('created_at')]);
  if(a.error)throw a.error;if(b.error)throw b.error;const urls={},paths=b.data.map(p=>p.path);
  if(paths.length){const {data}=await sb.storage.from('bird-photos').createSignedUrls(paths,21600);(data||[]).forEach(x=>urls[x.path]=x.signedUrl)}
- list=a.data.map(r=>({code:r.code,name:r.name,sci:r.sci,date:r.first_seen,source:r.source,thumb:r.thumb,photos:[],pp:[]}));
+ list=a.data.map(r=>({code:r.code,name:r.name,sci:r.sci,date:r.first_seen,source:r.source,thumb:r.thumb,notes:r.notes||'',score:r.score==null?null:+r.score,rarity:r.rarity||null,photos:[],pp:[]}));
  for(const p of b.data){const x=find(p.code);if(x&&urls[p.path]){x.photos.push(urls[p.path]);x.pp.push({id:p.id,path:p.path})}}}
-function addBird(t,src,thumb){let b=find(t.c);if(b)return b;b={code:t.c,name:t.n,sci:t.s,date:new Date().toISOString().slice(0,10),source:src||'search',thumb:thumb||null,photos:[],pp:[]};list.unshift(b);toast(t.n+' added to your life list');tabs(last);
- sb.from('life_list').upsert({user_id:USER.id,code:b.code,name:b.name,sci:b.sci,source:b.source,thumb:b.thumb,first_seen:b.date},{onConflict:'user_id,code'}).then(r=>{if(r.error)toast('Could not save to your account: '+r.error.message)});return b}
+function addBird(t,src,thumb){let b=find(t.c);if(b)return b;b={code:t.c,name:t.n,sci:t.s,date:new Date().toISOString().slice(0,10),source:src||'search',thumb:thumb||null,notes:'',score:null,rarity:null,photos:[],pp:[]};list.unshift(b);toast(t.n+' added to your life list');tabs(last);
+ sb.from('life_list').upsert({user_id:USER.id,code:b.code,name:b.name,sci:b.sci,source:b.source,thumb:b.thumb,first_seen:b.date},{onConflict:'user_id,code'}).then(r=>{if(r.error)toast('Could not save to your account: '+r.error.message);else rarityFor(t.s).then(x=>{setRarity(b,x.score,x.label);if(last==='list')renderList()}).catch(()=>{})});return b}
 async function addPhoto(b,dataUrl){const blob=await(await fetch(dataUrl)).blob();const path=`${USER.id}/${b.code}/${Date.now()}-${Math.random().toString(36).slice(2,7)}.jpg`;
  const up=await sb.storage.from('bird-photos').upload(path,blob,{contentType:'image/jpeg'});if(up.error)throw up.error;
  const ins=await sb.from('bird_photos').insert({user_id:USER.id,code:b.code,path}).select().single();if(ins.error)throw ins.error;
