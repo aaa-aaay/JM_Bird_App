@@ -255,7 +255,7 @@ function drawEntry(t,d,b){const box=$('#entry'),ph=b?b.photos:[];
  )}
 $('#back').onclick=()=>show(last);
 /* accounts (Supabase) */
-const SB_URL='https://xlgbomooaxuwwxczjxnt.supabase.co',SB_ANON='';
+    const SB_URL = 'https://xlgbomooaxuwwxczjxnt.supabase.co', SB_ANON ='sb_publishable_4sPloWNtT7gqvZ2B20EcjQ_dmwjFKYK';
 let sb=null,USER=null,recovering=false;
 function authUI(mode){document.body.classList.add('out');const a=$('#auth'),key=SB_ANON||ls('fn-sbkey','');
  if(!window.supabase){a.replaceChildren(h('p',{class:'msg err'},'Could not load the sign-in library. Check your internet connection and reload.'));return}
