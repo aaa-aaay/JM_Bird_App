@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fieldnotes – bird life list</title>
+<style>
+:root{--bg:#edf2ee;--surf:#fbfdfb;--ink:#13231e;--mute:#566963;--line:#cfdad3;--acc:#0b7a85;--accink:#fff;--gold:#a8661a;--red:#a23b2a;--grn:#2d7a4b;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1b18;--surf:#162723;--ink:#e6efe9;--mute:#98aca4;--line:#294039;--acc:#4cc3cf;--accink:#06201f;--gold:#e7a85a;--red:#e58a78;--grn:#6fcf95;color-scheme:dark}}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:17px/1.6 Newsreader,Georgia,serif}
+h1,h2,h3,button,.tab,label.btn,.tag,summary{font-family:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif}
+.wrap{max-width:860px;margin:0 auto;padding:20px 16px 60px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{font-size:2rem;margin:0;letter-spacing:-.02em}.sub{color:var(--mute);margin:2px 0 0}
+nav{display:flex;gap:4px;margin:18px 0 22px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{background:none;border:0;border-bottom:3px solid transparent;color:var(--mute);padding:10px 14px;font-size:1rem;cursor:pointer;white-space:nowrap}
+.tab[aria-selected=true]{color:var(--ink);border-color:var(--acc);font-weight:700}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.panel{background:var(--surf);border:1px solid var(--line);border-radius:10px;padding:18px}
+button,label.btn{background:var(--acc);color:var(--accink);border:0;border-radius:8px;padding:10px 16px;font-size:.95rem;font-weight:500;cursor:pointer;display:inline-block}
+button.ghost,label.btn.ghost{background:none;color:var(--ink);border:1px solid var(--line)}
+button:disabled{opacity:.5}
+input[type=text],input[type=password]{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;font-size:16px}
+input[type=file]{position:absolute;opacity:0;width:1px;height:1px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.muted{color:var(--mute)}
+.msg{padding:12px 14px;border-left:4px solid var(--acc);background:var(--bg);margin:14px 0;border-radius:4px}.msg.err{border-color:var(--red)}
+.hide{display:none!important}
+.sr{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line);cursor:pointer;min-height:64px}
+.sr:first-child{border-top:0}.sr h3{margin:0;font-size:1.05rem}
+.ill{width:56px;height:56px;flex:none;border-radius:10px;background:var(--bg);object-fit:cover;display:block}
+.conf{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;color:var(--acc);font-size:1.3rem}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+#preview{max-width:100%;max-height:320px;border-radius:8px;margin-top:14px;display:block}
+canvas#spec{width:100%;height:200px;background:#06100e;border-radius:8px;display:block}
+.tag{display:inline-block;font-size:.8rem;font-weight:700;padding:2px 10px;border-radius:99px;border:1.5px solid currentColor}
+.r-Common{color:var(--grn)}.r-Uncommon{color:var(--acc)}.r-Rare{color:var(--gold)}.r-None{color:var(--red)}
+.entry h2{font-size:2rem;margin:.2em 0 0;letter-spacing:-.02em}.sci{font-style:italic;color:var(--mute);margin:0 0 10px}
+.gal{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 0}
+.gal figure{margin:0;flex:none;width:min(78vw,300px);scroll-snap-align:start}
+.gal img{width:100%;height:220px;object-fit:cover;border-radius:10px;display:block;background:var(--bg)}
+figcaption{font-size:.72rem;color:var(--mute);line-height:1.3;margin-top:3px}
+details{border-top:1px solid var(--line)}details:last-of-type{border-bottom:1px solid var(--line)}
+summary{list-style:none;cursor:pointer;padding:12px 2px;font-weight:700;font-size:1.05rem;display:flex;justify-content:space-between;align-items:center;min-height:48px}
+summary::-webkit-details-marker{display:none}summary::after{content:"+";font-size:1.5rem;color:var(--mute)}details[open]>summary::after{content:"–"}
+.dbody{padding:0 2px 16px}.dbody p{margin:.3em 0;max-width:68ch;white-space:pre-line}
+table{border-collapse:collapse;width:100%;max-width:520px}td{padding:6px 0;border-bottom:1px solid var(--line)}td:first-child{color:var(--mute);width:42%}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-top:10px}
+.photos figure{margin:0;position:relative}.photos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block}
+.photos button{position:absolute;top:6px;right:6px;padding:2px 8px;font-size:.8rem;background:rgba(0,0,0,.65);color:#fff}
+.gmap{display:grid;grid-template-columns:repeat(4,1fr);border-radius:8px;overflow:hidden;background:var(--bg)}
+.tile{position:relative;aspect-ratio:1}.tile img{position:absolute;inset:0;width:100%;height:100%}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--red);margin-right:6px;animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.25}}@media (prefers-reduced-motion:reduce){.dot{animation:none}}
+a{color:var(--acc)}.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:8px;z-index:5}
+label.f{display:block;margin:10px 0 4px;font-size:.9rem;color:var(--mute)}
+@media (max-width:700px){
+.wrap{padding:14px 12px 96px}h1{font-size:1.6rem}
+nav{position:fixed;left:0;right:0;bottom:0;margin:0;background:var(--surf);border-top:1px solid var(--line);border-bottom:0;z-index:4;padding:0 4px env(safe-area-inset-bottom,0px);justify-content:space-around;overflow:visible}
+.tab{flex:1;padding:10px 2px;font-size:.78rem;border-bottom:0;border-top:3px solid transparent;white-space:normal;min-height:54px}
+button,label.btn{min-height:44px}.panel{padding:14px}.acts button{flex:1}.entry h2{font-size:1.6rem}canvas#spec{height:160px}.toast{bottom:80px}}
+</style></head>
+<body><div class="wrap">
+<header><div><h1>Fieldnotes</h1><p class="sub">Live bird data from eBird, iNaturalist, Wikipedia and GBIF.</p></div><button class="ghost" id="gear" aria-expanded="false">Settings</button></header>
+<div id="settings" class="panel hide" style="margin-top:14px">
+ <label class="f" for="k1">eBird API key</label><input type="password" id="k1" autocomplete="off">
+ <label class="f" for="k2">Your region for rarity (eBird code, e.g. SG, US-NY, GB-ENG)</label><input type="text" id="k2" placeholder="Leave empty to skip rarity">
+ <label class="f" for="k3">Anthropic API key (optional, only for photo and call identification)</label><input type="password" id="k3" autocomplete="off">
+ <p class="muted" style="font-size:.85rem">Keys are stored only in this browser and sent only to eBird and Anthropic.</p>
+ <button id="ksave">Save settings</button>
+</div>
+<nav role="tablist" id="tabs"></nav>
+
+<section id="v-photo"><div class="panel">
+ <h2 style="margin:0 0 6px;font-size:1.2rem">Identify from a photo</h2>
+ <p class="muted" style="margin:0 0 12px">Upload a clear photo. You get up to three likely species, matched to the eBird checklist.</p>
+ <div class="row"><label class="btn">Choose a photo<input type="file" id="pf" accept="image/*"></label><label class="btn ghost">Take a photo<input type="file" id="pf2" accept="image/*" capture="environment"></label></div>
+ <img id="preview" class="hide" alt="Your uploaded bird photo"><div id="photo-out"></div></div></section>
+
+<section id="v-listen" class="hide"><div class="panel">
+ <h2 style="margin:0 0 6px;font-size:1.2rem">Listen for calls and songs</h2>
+ <p class="muted" style="margin:0 0 12px">The spectrogram scrolls live. Every 10 seconds, bird-like sound is summarised and matched to likely species. Treat results as clues.</p>
+ <button id="lbtn" style="margin-bottom:12px">Start listening</button>
+ <canvas id="spec" width="800" height="200" aria-label="Live spectrogram"></canvas>
+ <div id="lstatus" class="muted" style="margin-top:8px">Microphone is off.</div><div id="lout"></div></div></section>
+
+<section id="v-list" class="hide"><div class="panel" id="listbox"></div></section>
+
+<section id="v-search" class="hide"><div class="panel">
+ <h2 style="margin:0 0 10px;font-size:1.2rem">Search all birds of the world</h2>
+ <input type="text" id="q" placeholder="Start typing a bird name…" aria-label="Bird name" autocomplete="off">
+ <div id="sout"></div></div></section>
+
+<section id="v-entry" class="hide"><button class="ghost" id="back">Back</button><div id="entry" class="panel entry" style="margin-top:12px"></div></section>
+</div>
+<div id="toastbox"></div>
+<script>
+const $=s=>document.querySelector(s);
+function h(t,a,...c){const e=document.createElement(t);for(const k in(a||{})){if(k==='class')e.className=a[k];else if(k.startsWith('on'))e[k]=a[k];else e.setAttribute(k,a[k])}for(const x of c.flat())if(x!=null&&x!==false)e.append(x.nodeType?x:document.createTextNode(x));return e}
+function toast(m){const t=h('div',{class:'toast',role:'status'},m);$('#toastbox').append(t);setTimeout(()=>t.remove(),2600)}
+const ls=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}};
+const lset=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){toast('Storage is full. Remove some photos.');return false}};
+let cfg=Object.assign({key:'299b731d-5a96-4cbd-8846-ad33ae583208',region:'',ak:''},ls('fn-cfg',{}));
+let list=ls('fn-list2',[]);const save=()=>lset('fn-list2',list);
+const find=c=>list.find(b=>b.code===c);
+const errText=e=>(e&&e.message)||'Something went wrong. Try again.';
+$('#gear').onclick=()=>{const s=$('#settings');s.classList.toggle('hide');$('#gear').setAttribute('aria-expanded',String(!s.classList.contains('hide')));$('#k1').value=cfg.key;$('#k2').value=cfg.region;$('#k3').value=cfg.ak};
+$('#ksave').onclick=()=>{cfg={key:$('#k1').value.trim(),region:$('#k2').value.trim().toUpperCase(),ak:$('#k3').value.trim()};lset('fn-cfg',cfg);toast('Settings saved');$('#settings').classList.add('hide')};
+
+/* data sources */
+async function eb(p){const r=await fetch('https://api.ebird.org/v2/'+p,{headers:{'X-eBirdApiToken':cfg.key}});if(!r.ok)throw Error('eBird returned '+r.status+(r.status===403?'. Check your eBird API key in Settings.':r.status===400?'. Check the region code in Settings.':''));return r.json()}
+const jget=async u=>{const r=await fetch(u);if(!r.ok)throw Error('Request failed ('+r.status+')');return r.json()};
+const idb=()=>new Promise((ok,no)=>{const q=indexedDB.open('fn',1);q.onupgradeneeded=()=>q.result.createObjectStore('k');q.onsuccess=()=>ok(q.result);q.onerror=no});
+async function idbGet(k){try{const d=await idb();return await new Promise(r=>{const g=d.transaction('k').objectStore('k').get(k);g.onsuccess=()=>r(g.result);g.onerror=()=>r()})}catch(e){}}
+async function idbSet(k,v){try{const d=await idb();d.transaction('k','readwrite').objectStore('k').put(v,k)}catch(e){}}
+let TAX=null;
+async function tax(){if(TAX)return TAX;let t=await idbGet('tax');
+ if(!t||Date.now()-t.at>30*864e5){const rows=await eb('ref/taxonomy/ebird?fmt=json&cat=species');t={at:Date.now(),rows:rows.map(r=>({c:r.speciesCode,n:r.comName,s:r.sciName,o:r.order,f:r.familyComName,fs:r.familySciName,i:r.taxonOrder,k:(r.comName+' '+r.sciName).toLowerCase()}))};await idbSet('tax',t)}
+ return TAX=t.rows}
+function lev(a,b){const m=a.length,n=b.length;let p=Array.from({length:n+1},(_,j)=>j);for(let i=1;i<=m;i++){const c=[i];for(let j=1;j<=n;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[n]}
+function fuzzy(q,n){q=q.toLowerCase().trim();const th=Math.max(2,Math.round(q.length*.3)),out=[];
+ for(const t of TAX){const nm=t.n.toLowerCase(),sc=t.s.toLowerCase();let s;
+  if(nm===q||sc===q)s=-2;else if(nm.startsWith(q)||sc.startsWith(q))s=-1;else if(t.k.includes(q))s=.5;
+  else{let d=Math.min(lev(q,nm),lev(q,sc));for(const w of nm.split(/[ -]/))d=Math.min(d,lev(q,w)+1);if(d>th)continue;s=d}
+  out.push([s,t])}
+ return out.sort((a,b)=>a[0]-b[0]||a[1].i-b[1].i).slice(0,n).map(x=>x[1])}
+async function thumbs(L){try{const j=(await jget('https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1&prop=pageimages&piprop=thumbnail&pithumbsize=160&titles='+encodeURIComponent(L.map(t=>t.s).join('|')))).query||{};
+ const N={},R={},P={};(j.normalized||[]).forEach(x=>N[x.from]=x.to);(j.redirects||[]).forEach(x=>R[x.from]=x.to);Object.values(j.pages||{}).forEach(p=>P[p.title]=p.thumbnail&&p.thumbnail.source);
+ return L.map(t=>{let x=N[t.s]||t.s;x=R[x]||x;return P[x]||null})}catch(e){return L.map(()=>null)}}
+const pic=u=>u?h('img',{class:'ill',src:u,alt:'',loading:'lazy'}):h('div',{class:'ill'});
+const clip=(t,n)=>{t=(t||'').trim();if(t.length<=n)return t;const s=t.slice(0,n),i=s.lastIndexOf('. ');return i>n*.5?s.slice(0,i+1):s+'…'};
+
+/* tabs */
+const TABS=[['photo','Identify photo'],['listen','Listen live'],['list','Life list'],['search','Search']];let last='photo';
+function tabs(a){$('#tabs').replaceChildren(...TABS.map(([k,l])=>h('button',{class:'tab',role:'tab','aria-selected':String(k===a),onclick:()=>show(k)},k==='list'?`${l} (${list.length})`:l)))}
+function show(k){for(const [id] of TABS)$('#v-'+id).classList.toggle('hide',id!==k);$('#v-entry').classList.add('hide');tabs(k);last=k;if(k==='list')renderList();if(k==='search')$('#q').focus()}
+function addBird(t,src,thumb){let b=find(t.c);if(b)return b;b={code:t.c,name:t.n,sci:t.s,date:new Date().toISOString().slice(0,10),source:src||'search',thumb:thumb||null,photos:[]};list.unshift(b);save();toast(t.n+' added to your life list');tabs(last);return b}
+
+/* search results */
+function resRow(t,url,extra){const r=h('div',{class:'sr',tabindex:'0',role:'button',onclick:()=>openEntry(t.c),onkeydown:e=>{if(e.key==='Enter')openEntry(t.c)}},pic(url),h('div',{style:'flex:1;min-width:0'},h('h3',{},t.n),h('i',{class:'muted'},t.s),extra&&extra.why?h('div',{class:'muted',style:'font-size:.9rem'},extra.why):null),extra&&extra.conf!=null?h('div',{class:'conf'},Math.round(extra.conf)+'%'):null,
+ h('button',{class:'ghost','aria-label':'Add '+t.n+' to life list',onclick:e=>{e.stopPropagation();if(find(t.c))return toast('Already on your list');addBird(t,extra&&extra.src,url);e.target.textContent='Added'}},find(t.c)?'Listed':'Add'));return r}
+async function fillRows(box,rows){const th=await thumbs(rows.map(r=>r.t));box.replaceChildren(...rows.map((r,i)=>resRow(r.t,th[i],r)))}
+let qt;$('#q').oninput=()=>{clearTimeout(qt);qt=setTimeout(async()=>{const q=$('#q').value.trim(),o=$('#sout');if(q.length<2){o.replaceChildren();return}
+ o.replaceChildren(h('div',{class:'msg'},TAX?'Searching…':'Downloading the eBird species list (first time only)…'));
+ try{await tax();const res=fuzzy(q,8);if($('#q').value.trim()!==q)return;if(!res.length){o.replaceChildren(h('div',{class:'msg err'},'No birds with a similar name.'));return}
+  const box=h('div',{style:'margin-top:8px'});o.replaceChildren(box);await fillRows(box,res.map(t=>({t})))}catch(e){o.replaceChildren(h('div',{class:'msg err'},errText(e)))}},250)};
+
+/* AI identification (optional) */
+async function ai(prompt,img){if(!cfg.ak)throw Error('Add your Anthropic API key in Settings to use photo and call identification.');
+ const content=[];if(img)content.push({type:'image',source:{type:'base64',media_type:'image/jpeg',data:img.split(',')[1]}});content.push({type:'text',text:prompt});
+ const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':cfg.ak,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:800,messages:[{role:'user',content}]})});
+ if(!r.ok)throw Error('Anthropic API returned '+r.status+'. Check your key in Settings.');const j=await r.json();return JSON.parse(j.content.map(c=>c.text||'').join('').replace(/```json|```/g,'').trim())}
+const CAND='Return JSON only: {"candidates":[{"name":"eBird common name","scientific":"","confidence":0-100,"why":"one sentence"}]} with at most 3 candidates, most likely first.';
+async function candidates(cs,src,box,prepend){await tax();const rows=[];for(const c of cs){const s=(c.scientific||'').toLowerCase();const t=TAX.find(x=>x.s.toLowerCase()===s)||fuzzy(c.name||c.scientific||'',1)[0];if(t&&!rows.some(r=>r.t===t))rows.push({t,conf:c.confidence,why:c.why,src})}
+ const wrap=h('div',{});if(prepend){wrap.className='msg';wrap.append(h('strong',{},new Date().toLocaleTimeString()))}const list=h('div',{});wrap.append(list);prepend?box.prepend(wrap):box.replaceChildren(rows.length?wrap:h('div',{class:'msg err'},'No matching species found.'));if(rows.length)await fillRows(list,rows)}
+function readURL(f){return new Promise((r,j)=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.onerror=j;fr.readAsDataURL(f)})}
+async function shrink(file,max,q){const url=await readURL(file);const img=await new Promise((r,j)=>{const i=new Image();i.onload=()=>r(i);i.onerror=j;i.src=url});const s=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);return c.toDataURL('image/jpeg',q)}
+const idPhoto=async e=>{const f=e.target.files[0];if(!f)return;const out=$('#photo-out');out.replaceChildren(h('div',{class:'msg'},'Looking at your photo…'));
+ try{const data=await shrink(f,1024,.85);const p=$('#preview');p.src=data;p.classList.remove('hide');
+  const r=await ai('Identify the bird in this photo. If there is no bird, return {"candidates":[]}. '+CAND+' In "why", name visible field marks.',data);
+  await candidates(r.candidates||[],'photo',out)}catch(err){out.replaceChildren(h('div',{class:'msg err'},errText(err)))}e.target.value=''};
+$('#pf').onchange=$('#pf2').onchange=idPhoto;
+
+/* live listening */
+let actx,an,stream,raf,hist=[],timer,on=false,busy=false,skip=0,bins;const cv=$('#spec'),cx=cv.getContext('2d');
+function summarise(){const now=performance.now(),H=hist.filter(x=>now-x.t<10000);if(H.length<60)return null;const A=x=>x.v>120&&x.e>x.floor+35;const act=H.filter(A);if(act.length/H.length<.04)return null;
+ const fs=act.map(x=>x.f).sort((a,b)=>a-b),q=p=>Math.round(fs[Math.floor(p*(fs.length-1))]);const bs=[];let cur=null;
+ for(const x of H){if(A(x)){if(cur&&x.t-cur.end<120){cur.end=x.t;cur.f1=x.f}else{cur={start:x.t,end:x.t,f0:x.f,f1:x.f};bs.push(cur)}}}
+ const L=bs.filter(b=>b.end-b.start>=30),dur=L.length?L.reduce((s,b)=>s+b.end-b.start,0)/L.length:0;
+ return{activeFraction:+(act.length/H.length).toFixed(2),peakFreqHz:{p10:q(.1),median:q(.5),p90:q(.9),min:q(0),max:q(1)},burstCount:L.length,burstsPerSecond:+(L.length/10).toFixed(1),meanBurstSeconds:+(dur/1000).toFixed(2),risingBursts:L.filter(b=>b.f1>b.f0+400).length,fallingBursts:L.filter(b=>b.f1<b.f0-400).length}}
+function frame(){an.getByteFrequencyData(bins);const W=cv.width,Hh=cv.height,hz=actx.sampleRate/an.fftSize,mb=Math.floor(10000/hz);cx.drawImage(cv,-2,0);
+ for(let y=0;y<Hh;y++){const v=bins[Math.floor((1-y/Hh)*mb)];cx.fillStyle=`hsl(${190-v*.45},80%,${Math.min(70,v/4)}%)`;cx.fillRect(W-2,y,2,1)}
+ let pk=0,pb=0,sum=0,n=0;for(let i=Math.floor(500/hz);i<mb;i++){const v=bins[i];sum+=v;n++;if(v>pk){pk=v;pb=i}}
+ hist.push({t:performance.now(),f:pb*hz,v:pk,e:pk,floor:sum/n});if(hist.length>800)hist.shift();raf=requestAnimationFrame(frame)}
+async function analyse(){if(busy||!on)return;if(skip>0){skip--;return}const s=summarise();if(!s){$('#lstatus').textContent='Listening… no clear bird sounds in the last 10 seconds.';return}
+ busy=true;$('#lstatus').textContent='Sound detected. Matching to species…';
+ try{const r=await ai('You are an expert bird sound identifier. Acoustic measurements from a 10-second microphone window: '+JSON.stringify(s)+'. '+(cfg.region?'Region (eBird code): '+cfg.region+'. ':'')+'Suggest species whose calls or songs fit. If it looks like non-bird noise, return an empty list. '+CAND);
+  if((r.candidates||[]).length)await candidates(r.candidates,'call',$('#lout'),true);$('#lstatus').replaceChildren(h('span',{class:'dot'}),'Listening…')}
+ catch(e){skip=3;$('#lstatus').textContent=errText(e)}busy=false}
+$('#lbtn').onclick=async()=>{if(on){on=false;cancelAnimationFrame(raf);clearInterval(timer);stream.getTracks().forEach(t=>t.stop());actx.close();$('#lbtn').textContent='Start listening';$('#lstatus').textContent='Microphone is off.';return}
+ if(!cfg.ak){toast('Add your Anthropic API key in Settings first');return}
+ try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false}})}catch(e){$('#lstatus').textContent='Microphone access was blocked. Allow it in your browser settings.';return}
+ actx=new AudioContext();an=actx.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=.3;actx.createMediaStreamSource(stream).connect(an);bins=new Uint8Array(an.frequencyBinCount);hist=[];cx.fillStyle='#06100e';cx.fillRect(0,0,cv.width,cv.height);
+ on=true;$('#lbtn').textContent='Stop listening';$('#lstatus').replaceChildren(h('span',{class:'dot'}),'Listening…');frame();timer=setInterval(analyse,10000)};
+
+/* life list */
+function renderList(){const b=$('#listbox');if(!list.length){b.replaceChildren(h('h2',{style:'margin:0 0 6px;font-size:1.2rem'},'Your life list is empty'),h('p',{class:'muted'},'Search for a bird, or identify one from a photo or call, then add it here.'));return}
+ b.replaceChildren(h('h2',{style:'margin:0 0 6px;font-size:1.2rem'},list.length+' species seen'),...list.map(x=>h('div',{class:'sr',tabindex:'0',role:'button',onclick:()=>openEntry(x.code),onkeydown:e=>{if(e.key==='Enter')openEntry(x.code)}},pic(x.photos[0]||x.thumb),h('div',{style:'flex:1;min-width:0'},h('h3',{},x.name),h('div',{class:'muted',style:'font-size:.9rem'},h('i',{},x.sci),' · first logged '+x.date)))))}
+
+/* entry */
+const cache={};
+function secs(txt){const p=(txt||'').split(/\n=+\s*(.+?)\s*=+\n/);const o=[];for(let i=1;i<p.length;i+=2)o.push([p[i],p[i+1]||'']);return{intro:p[0],secs:o}}
+const pick=(S,re,n)=>clip(S.filter(s=>re.test(s[0])).map(s=>s[1].trim()).filter(Boolean).join('\n\n'),n);
+async function rarity(code){if(!cfg.region)return{msg:'Add your region in Settings (for example SG or US-NY) to see rarity from recent eBird reports.'};
+ const [o,n]=await Promise.all([eb(`data/obs/${cfg.region}/recent/${code}?back=30`),eb(`data/obs/${cfg.region}/recent/notable?back=30&detail=simple`)]);
+ const nt=n.some(x=>x.speciesCode===code),c=o.length;return{level:nt?'Rare':c===0?'None':c>=30?'Common':c>=5?'Uncommon':'Rare',c,nt,recent:o.slice(0,5),region:cfg.region}}
+async function load(t){const sci=encodeURIComponent(t.s);
+ const [w,inat,gb,ra]=await Promise.allSettled([
+  jget('https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1&prop=extracts|pageimages&explaintext=1&piprop=thumbnail&pithumbsize=800&titles='+sci),
+  (async()=>{const s=await jget('https://api.inaturalist.org/v1/taxa?rank=species&per_page=1&q='+sci);const id=s.results&&s.results[0]&&s.results[0].id;if(!id)return null;return (await jget('https://api.inaturalist.org/v1/taxa/'+id)).results[0]})(),
+  jget('https://api.gbif.org/v1/species/match?kingdom=Animalia&name='+sci),
+  rarity(t.c)]);
+ const d={};const pg=w.status==='fulfilled'?Object.values((w.value.query||{}).pages||{})[0]:null;
+ if(pg&&!pg.missing){const S=secs(pg.extract);d.title=pg.title;d.wimg=pg.thumbnail&&pg.thumbnail.source;d.summary=clip(S.intro,800);d.dist=pick(S.secs,/distribut|range|habitat/i,900);d.beh=pick(S.secs,/behav|ecolog|diet|feeding|breeding|vocal|voice|call|song/i,1400)}
+ const it=inat.status==='fulfilled'?inat.value:null;d.photos=it?(it.taxon_photos||[]).slice(0,8).map(p=>({src:p.photo.medium_url,cap:p.photo.attribution||'iNaturalist'})):[];
+ if(it){const cs=(it.conservation_statuses||[]).find(c=>c.authority==='IUCN Red List'&&!c.place)||it.conservation_status;d.iucn=cs&&(cs.status_name||cs.status)}
+ d.gbif=gb.status==='fulfilled'?gb.value.usageKey:null;d.rar=ra.status==='fulfilled'?ra.value:{err:errText(ra.reason)};return d}
+async function openEntry(code){['photo','listen','list','search'].forEach(k=>$('#v-'+k).classList.add('hide'));$('#v-entry').classList.remove('hide');scrollTo(0,0);const box=$('#entry');
+ box.replaceChildren(h('p',{class:'muted'},'Loading from eBird, iNaturalist, Wikipedia and GBIF…'));
+ try{const T=await tax();const t=T.find(x=>x.c===code);if(!cache[code])cache[code]=await load(t);drawEntry(t,cache[code],find(code))}catch(e){box.replaceChildren(h('div',{class:'msg err'},errText(e)))}}
+function sec(title,body){return h('details',{},h('summary',{},h('span',{},title)),h('div',{class:'dbody'},body))}
+const none=h=>'Nothing found for this section on Wikipedia.';
+function gbifMap(k){const w=h('div',{class:'gmap',role:'img','aria-label':'Map of recorded sightings'});for(let y=0;y<2;y++)for(let x=0;x<4;x++)w.append(h('div',{class:'tile'},h('img',{alt:'',loading:'lazy',src:`https://tile.gbif.org/4326/omt/1/${x}/${y}@1x.png?style=gbif-light`}),h('img',{alt:'',loading:'lazy',src:`https://api.gbif.org/v2/map/occurrence/density/1/${x}/${y}@1x.png?srs=EPSG:4326&taxonKey=${k}&style=purpleHeat.point`})));return w}
+function drawEntry(t,d,b){const box=$('#entry'),ph=b?b.photos:[];
+ const items=[...ph.slice(0,3).map(p=>({src:p,cap:'Your photo'})),...(d.wimg?[{src:d.wimg,cap:'Wikipedia / Wikimedia Commons'}]:[]),...d.photos];
+ const wt=encodeURIComponent((d.title||t.s).replace(/ /g,'_'));
+ const grid=h('div',{class:'photos'},ph.map((p,i)=>h('figure',{},h('img',{src:p,alt:'Your photo of '+t.n}),h('button',{'aria-label':'Delete photo',onclick:()=>{b.photos.splice(i,1);save();drawEntry(t,d,b)}},'Delete'))));
+ const up=h('input',{type:'file',accept:'image/*',multiple:'multiple',onchange:async e=>{for(const f of e.target.files){try{const u=await shrink(f,640,.75);if(!b)b=addBird(t,'search',d.photos[0]&&d.photos[0].src);b.photos.push(u)}catch(x){toast('Could not read that image')}}save();drawEntry(t,d,b)}});
+ const r=d.rar||{},lab={None:'Not reported lately'};
+ box.replaceChildren(h('h2',{},t.n),h('p',{class:'sci'},t.s),
+  items.length?h('div',{class:'gal'},items.map(i=>h('figure',{},h('img',{src:i.src,alt:t.n,loading:'lazy'}),h('figcaption',{},i.cap)))):h('p',{class:'muted'},'No photos found online for this bird.'),
+  h('div',{style:'margin:12px 0'},b?h('button',{class:'ghost',onclick:()=>{if(confirm('Remove '+t.n+' and your photos from the life list?')){list=list.filter(x=>x!==b);save();show('list')}}},'Remove from life list'):h('button',{onclick:()=>{b=addBird(t,'search',d.photos[0]&&d.photos[0].src);drawEntry(t,d,b)}},'Add to life list')),
+  sec('My photos'+(ph.length?' ('+ph.length+')':''),[h('p',{class:'muted',style:'margin:0 0 8px'},b?'Photos stay in this browser.':'Adding a photo also adds this bird to your life list.'),grid,h('div',{style:'margin-top:10px'},h('label',{class:'btn ghost'},'Add my photos',up))]),
+  sec('Distribution',[d.gbif?gbifMap(d.gbif):h('p',{class:'muted'},'No map available.'),d.gbif?h('p',{class:'muted',style:'font-size:.8rem'},'Purple marks show recorded sightings (GBIF). Basemap: GBIF and OpenStreetMap contributors.'):null,h('p',{},d.dist||none())]),
+  sec('Summary',[h('p',{},d.summary||none()),d.title?h('a',{href:'https://en.wikipedia.org/wiki/'+wt,target:'_blank',rel:'noopener'},'Read more on Wikipedia'):null]),
+  sec('Behaviour and ecology',h('p',{},d.beh||none())),
+  sec('Species information',h('table',{},...[['Common name',t.n],['Scientific name',t.s],['Order',t.o],['Family',t.f+(t.fs?' ('+t.fs+')':'')],['Genus',t.s.split(' ')[0]],['IUCN status',d.iucn],['eBird code',t.c]].filter(x=>x[1]).map(x=>h('tr',{},h('td',{},x[0]),h('td',{},x[1]))))),
+  sec('Rarity',r.level?[h('span',{class:'tag r-'+r.level},lab[r.level]||r.level),h('p',{},`Reported from ${r.c} location${r.c===1?'':'s'} in ${r.region} in the last 30 days${r.nt?', and flagged as notable by eBird reviewers':''}. The label is a rough guide from recent reports.`),r.recent.length?h('p',{class:'muted'},'Latest: '+r.recent.map(o=>`${o.locName} (${o.obsDt.slice(0,10)})`).join('; ')):null]:h('p',{},r.msg||r.err||'Rarity unavailable.'))
+ )}
+$('#back').onclick=()=>show(last);
+show('photo');
+</script></body></html>
